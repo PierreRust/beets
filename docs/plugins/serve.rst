@@ -2,7 +2,7 @@ Serve Plugin
 ============
 
 The ``serve`` plugin is an ongoing effort to add a JSON/REST API to beets. It
- is meant to be rather generic and usable from a HTML web application or any
+is meant to be rather generic and usable from a HTML web application or any
 other client.  
 
 The ``serve`` does not provide any user interface. It only exposes expose the 
@@ -68,22 +68,22 @@ The root resource should only contains links to other resources.
 
 
 ``GET /items/``
-++++++++++++++
++++++++++++++++
 
 
 
 ``GET /albums/``
-++++++++++++++
+++++++++++++++++
 
 
 
 ``GET /plugins/``
-++++++++++++++
++++++++++++++++++
 
 Could be used to discover the list of plugins that exposes actions through the REST API.
 
  
 
 ``GET /stats/``
-++++++++++++++
++++++++++++++++
 

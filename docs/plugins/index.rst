@@ -34,6 +34,7 @@ by typing ``beet version``.
    fetchart
    embedart
    web
+   serve
    lastgenre
    replaygain
    inline
@@ -116,6 +117,7 @@ Miscellaneous
 -------------
 
 * :doc:`web`: An experimental Web-based GUI for beets.
+* :doc:`serve`: Ongoing effort for a new REST API for beets.
 * :doc:`random`: Randomly choose albums and tracks from your library.
 * :doc:`fuzzy`: Search albums and tracks with fuzzy string matching.
 * :doc:`mbcollection`: Maintain your MusicBrainz collection list.
