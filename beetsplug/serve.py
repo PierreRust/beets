@@ -11,16 +11,81 @@
 #
 # The above copyright notice and this permission notice shall be
 # included in all copies or substantial portions of the Software.
+from beets.dbcore import query
+from beets.dbcore.query import MatchQuery, AndQuery
+from beets.library import Album
 
 """REST API to beets."""
 from beets.plugins import BeetsPlugin
-from beets import ui
+from beets import ui, config, util
+import beets.library
 import flask
+from flask import g, request
+from flask import jsonify
+import json
+from marshmallow import Serializer, fields
+import time
+
+class BeetsDateField(fields.Raw):
+    def format(self, value):
+        return time.strftime(beets.config['time_format'].get(unicode),
+                             time.localtime(value or 0))
+
+
+# TODO: create several serializer with a different set of fields ?
+# TODO: dynamically add flexattr 
+class AlbumSerializer(Serializer):
+
+    created_at = fields.DateTime()
+    id = fields.String(required=True)
+    added = BeetsDateField()
+    albumartist = fields.String()
+    albumartist_sort = fields.String()
+    albumartist_credit = fields.String()
+    album = fields.String()
+    genre = fields.String()
+    year = fields.Integer()
+    month = fields.Integer()
+    day = fields.Integer()
+    tracktotal = fields.Integer()
+    disctotal = fields.Integer()
+
+
+album_simple_serializer = AlbumSerializer.factory(only = ('id','album','genre','albumartist'))
+album_full_serializer = AlbumSerializer.factory()
 
 # Flask setup.
-
 app = flask.Flask(__name__)
 
+@app.before_request
+def before_request():
+    g.lib = app.config['lib']
+    
+
+@app.route('/albums', methods=['GET'])
+def albums_list():
+    
+    # build a query out of the parameter
+    # TODO: add sort option : needs support in the core
+    # TODO: add (optional?) pagination
+    # TODO: add links to related objects (tracks, and album ?)
+    queries = []
+    for (arg_name, arg_value) in request.args.iteritems():
+        # Check if the arg is a valid filter name
+        if arg_name in Album._fields: 
+            queries.append(MatchQuery(arg_name, arg_value))
+
+    albums = g.lib.albums(AndQuery(queries))
+        
+    #return jsonify({"args" : request.args})        
+    
+#     return jsonify({"albums" : album_simple_serializer(albums, many=True).data})        
+    return jsonify({"albums" : album_full_serializer(albums, many=True).data})        
+
+
+
+#api.add_resource(AlbumsResource, '/albums')
+#api.decorators=[cors.crossdomain(origin='*')]
 
 class WebPlugin(BeetsPlugin):
     def __init__(self):
