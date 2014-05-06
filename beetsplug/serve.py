@@ -69,6 +69,8 @@ def albums_list():
     # TODO: add sort option : needs support in the core
     # TODO: add (optional?) pagination
     # TODO: add links to related objects (tracks, and album ?)
+    # with url template
+    # with include documents for tracks ?
     queries = []
     for (arg_name, arg_value) in request.args.iteritems():
         # Check if the arg is a valid filter name
@@ -82,6 +84,19 @@ def albums_list():
 #     return jsonify({"albums" : album_simple_serializer(albums, many=True).data})        
     return jsonify({"albums" : album_full_serializer(albums, many=True).data})        
 
+
+@app.route('/albums/<int:album_id>/art', methods=['GET'])
+def album_art():
+    """This enpoint returns the album art  
+    """
+    pass
+
+@app.route('/albums/<int:album_id>/file', methods=['GET'])
+def album_file():
+    """This enpoint returns an archive file that contains all files for this 
+    album.  
+    """
+    pass
 
 
 #api.add_resource(AlbumsResource, '/albums')
