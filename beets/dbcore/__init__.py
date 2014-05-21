@@ -16,7 +16,7 @@
 Library.
 """
 from .db import Model, Database
-from .query import Query, FieldQuery, MatchQuery, AndQuery, OrQuery
+from .query import Query, FieldQuery, MatchQuery, AndQuery, OrQuery, Sort
 from .types import Type
 
 # flake8: noqa

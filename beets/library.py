@@ -519,7 +519,7 @@ class Item(LibModel):
         for query, path_format in path_formats:
             if query == PF_KEY_DEFAULT:
                 continue
-            query = get_query(query, type(self))
+            (query, _) = get_query(query, type(self))
             if query.match(self):
                 # The query matches the item! Use the corresponding path
                 # format.
@@ -927,8 +927,8 @@ def construct_query_part(model_cls, prefixes, query_part):
 
     # Set up and parse the string.
     query_classes = dict((k, t.query) for (k, t) in model_cls._fields.items())
-    key, pattern, query_class = \
-        parse_query_part(query_part, query_classes, prefixes)
+    key, pattern, query_class = parse_query_part(query_part, query_classes,
+                                                 prefixes)
 
     # No key specified.
     if key is None:
@@ -963,6 +963,17 @@ def query_from_strings(query_cls, model_cls, prefixes, query_parts):
     return query_cls(subqueries)
 
 
+def sort_from_strings(model_cls, sort_parts):
+    """Creates a Sort object from a list of sort criteria strings.
+    """
+    if not sort_parts:
+        return None
+    sort = dbcore.Sort(model_cls)
+    for part in sort_parts:
+        sort.add_criteria(part[:-1], (part[-1] == '+'))
+    return sort
+
+
 def _get_query_helper(val, model_cls, prefixes):
     """Take a value which may be None, a query string, a query string
     list, or a Query object, and return a suitable Query object.
@@ -971,9 +982,10 @@ def _get_query_helper(val, model_cls, prefixes):
     is a query for (i.e., Album or Item) and is used to determine which
     fields are searched.
     """
-    # Convert a single string into a list of space-separated
-    # criteria.
+
     if isinstance(val, basestring):
+        # Convert a single string into a list of space-separated
+        # criteria.
         # A bug in Python < 2.7.3 prevents correct shlex splitting of
         # Unicode strings.
         # http://bugs.python.org/issue6988
@@ -982,11 +994,20 @@ def _get_query_helper(val, model_cls, prefixes):
         val = [s.decode('utf8') for s in shlex.split(val)]
 
     if val is None:
-        return dbcore.query.TrueQuery()
+        return (dbcore.query.TrueQuery(), None)
     elif isinstance(val, list) or isinstance(val, tuple):
-        return query_from_strings(dbcore.AndQuery, model_cls, prefixes, val)
+        # separate query token and sort token
+        query_val = [s for s in val if not s.endswith(('+', '-'))]
+        sort_val = [s for s in val if s.endswith(('+', '-'))]
+
+        query = query_from_strings(dbcore.AndQuery, model_cls,
+                                   prefixes, query_val)
+        sort = sort_from_strings(model_cls, sort_val)
+
+        return (query, sort)
+
     elif isinstance(val, dbcore.Query):
-        return val
+        return (val, None)
     else:
         raise ValueError('query must be None or have type Query or str')
 
@@ -1062,30 +1083,32 @@ class Library(dbcore.Database):
 
     # Querying.
 
-    def _fetch(self, model_cls, query, order_by=None):
-        """Parse a query and fetch.
+    def _fetch(self, model_cls, query, sort_order=None):
+        """Parse a query and fetch. If a sort_order is explicitly given,
+        any sort order specification present in the query string is ignored.
         """
+        (query, sort) = get_query(query, model_cls)
+        sort = sort if sort_order is None else sort_order
+
         return super(Library, self)._fetch(
-            model_cls, get_query(query, model_cls), order_by
+            model_cls, query, sort
         )
 
-    def albums(self, query=None):
+    def albums(self, query=None, sort_order=None):
         """Get a sorted list of :class:`Album` objects matching the
-        given query.
+        given query. This list is sorted according to the (optionally)
+        given sort order. If a sort_order is explicitly given,
+        any sort order specification present in the query string is ignored.
         """
-        order = '{0}, album'.format(
-            _orelse("albumartist_sort", "albumartist")
-        )
-        return self._fetch(Album, query, order)
+        return self._fetch(Album, query, sort_order)
 
-    def items(self, query=None):
+    def items(self, query=None, sort_order=None):
         """Get a sorted list of :class:`Item` objects matching the given
-        query.
+        query. This list is sorted according to the (optionally)
+        given sort order. If a sort_order is explicitly given,
+        any sort order specification present in the query string is ignored.
         """
-        order = '{0}, album, disc, track'.format(
-            _orelse("artist_sort", "artist")
-        )
-        return self._fetch(Item, query, order)
+        return self._fetch(Item, query, sort_order)
 
     # Convenience accessors.
 

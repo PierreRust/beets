@@ -24,7 +24,7 @@ import collections
 
 import beets
 from beets.util.functemplate import Template
-from .query import MatchQuery
+from .query import MatchQuery, Sort
 
 
 # Abstract base for model classes.
@@ -736,11 +736,12 @@ class Database(object):
 
     # Querying.
 
-    def _fetch(self, model_cls, query, order_by=None):
+    def _fetch(self, model_cls, query, sort_order=None):
         """Fetch the objects of type `model_cls` matching the given
         query. The query may be given as a string, string sequence, a
         Query object, or None (to fetch everything). If provided,
-        `order_by` is a SQLite ORDER BY clause for sorting.
+        `sort_order` is either a SQLite ORDER BY clause for sorting or a
+        Sort object.
         """
         where, subvals = query.clause()
 
@@ -748,8 +749,12 @@ class Database(object):
             model_cls._table,
             where or '1',
         )
-        if order_by:
-            sql += " ORDER BY {0}".format(order_by)
+        if sort_order:
+            if isinstance(sort_order, basestring):
+                sql += " ORDER BY {0}".format(sort_order)
+            elif isinstance(sort_order, Sort):
+                sql += " ORDER BY {0}".format(sort_order.clause())
+
         with self.transaction() as tx:
             rows = tx.query(sql, subvals)
 

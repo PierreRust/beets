@@ -497,3 +497,33 @@ class DateQuery(FieldQuery):
             # Match any date.
             clause = '1'
         return clause, subvals
+
+
+class Sort(object):
+
+    def __init__(self, model_cls):
+        self.criterias = []
+        self.model_cls = model_cls
+        self.is_fast = True
+
+    def add_criteria(self, field, is_ascending):
+
+        if self.is_fast and field not in self.model_cls._fields:
+            self.is_fast = False
+
+        self.criterias.append((field, is_ascending))
+
+    def clause(self):
+        """Returns a sql fragment to be use in a ORDER BY clause
+        or None if it's a slow query
+        """
+        sort_strings = []
+        for (field, is_ascending) in self.criterias:
+            order = " ASC" if is_ascending else " DESC"
+            sort_strings.append(field + order)
+        return ",".join(sort_strings)
+
+    def sort(self, list):
+        """Sort the gievn list. Meant to be used with slow queries
+        """
+        pass
